@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Неподвижная плита</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin: 0;
+      padding: 20px;
+      flex-wrap: wrap;
+    }
+
+    h1 {
+      margin-bottom: 20px;
+    }
+
+    .container {
+      display: flex;
+      gap: 20px;
+    }
+
+    .column {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .button-wrapper {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .button {
+      width: 60px;
+      height: 60px;
+      font-size: 16px;
+      text-align: center;
+      cursor: pointer;
+      border: 1px solid #ccc;
+      background-color: red;
+      color: white;
+      border-radius: 50%;
+      transition: background-color 0.2s ease, color 0.2s ease;
+    }
+
+    .button.on {
+      background-color: green;
+    }
+
+    .label {
+      font-size: 14px;
+      cursor: pointer;
+    }
+
+    .label-input {
+      font-size: 14px;
+      width: 100px;
+    }
+
+    .note-container {
+      margin-left: 20px;
+    }
+
+    .note {
+      width: 300px;
+      height: calc(8 * 70px);
+      /* 8 buttons with gaps */
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      resize: both;
+      overflow: auto;
+      padding: 10px;
+      font-size: 14px;
+      font-family: Arial, sans-serif;
+    }
+
+    .action-buttons {
+      margin-top: 20px;
+      display: flex;
+      gap: 10px;
+    }
+
+    .action-button {
+      padding: 10px 20px;
+      font-size: 16px;
+      background-color: #007BFF;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+
+    .action-button:hover {
+      background-color: #0056b3;
+    }
+
+    .action-button.reset {
+      background-color: #DC3545;
+    }
+
+    .action-button.reset:hover {
+      background-color: #a71d2a;
+    }
+  </style>
+</head>
+
+<body>
+  <h1>Неподвижная плита</h1>
+  <div class="container">
+    <div class="column" id="column1">
+      <!-- Buttons for column 1 will be dynamically inserted here -->
+    </div>
+    <div class="column" id="column2">
+      <!-- Buttons for column 2 will be dynamically inserted here -->
+    </div>
+    <div class="note-container">
+      <textarea class="note" placeholder="Здесь вы можете оставить заметки..."></textarea>
+    </div>
+  </div>
+  <div class="action-buttons">
+    <button class="action-button" onclick="window.location.href='index.html';">Выход</button>
+    <button class="action-button reset" onclick="clearData();">Стереть</button>
+    <a href="korpusa_tpa_1.html" class="action-button">Назад</a>
+  </div>
+
+  <script>
+    function initialize() {
+      const column1 = document.getElementById('column1');
+      const column2 = document.getElementById('column2');
+      const note = document.querySelector('.note');
+
+      // Restore from local storage
+      const savedState = JSON.parse(localStorage.getItem('appState')) || {
+        buttons: {
+          column1: Array(8).fill({ label: '№', state: false }),
+          column2: Array(8).fill({ label: '№', state: false })
+        },
+        note: ''
+      };
+
+      const createButton = (buttonData, column) => {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'button-wrapper';
+
+        const button = document.createElement('button');
+        button.className = 'button';
+        button.textContent = buttonData.state ? 'ON' : 'OFF';
+        button.classList.toggle('on', buttonData.state);
+        button.onclick = () => {
+          buttonData.state = !buttonData.state;
+          button.textContent = buttonData.state ? 'ON' : 'OFF';
+          button.classList.toggle('on', buttonData.state);
+          saveState();
+        };
+
+        const label = document.createElement('span');
+        label.className = 'label';
+        label.textContent = buttonData.label;
+        label.onclick = () => {
+          const input = document.createElement('input');
+          input.className = 'label-input';
+          input.type = 'text';
+          input.value = label.textContent;
+          input.onblur = () => {
+            buttonData.label = input.value;
+            label.textContent = input.value;
+            wrapper.replaceChild(label, input);
+            saveState();
+          };
+          wrapper.replaceChild(input, label);
+          input.focus();
+        };
+
+        wrapper.appendChild(button);
+        wrapper.appendChild(label);
+        column.appendChild(wrapper);
+      };
+
+      savedState.buttons.column1.forEach(buttonData => createButton(buttonData, column1));
+      savedState.buttons.column2.forEach(buttonData => createButton(buttonData, column2));
+
+      note.value = savedState.note;
+      note.addEventListener('input', () => {
+        savedState.note = note.value;
+        saveState();
+      });
+
+      function saveState() {
+        localStorage.setItem('appState', JSON.stringify(savedState));
+      }
+    }
+
+    function clearData() {
+      localStorage.removeItem('appState');
+      location.reload();
+    }
+
+    document.addEventListener('DOMContentLoaded', initialize);
+  </script>
+  <iframe src="counter_korpus_stick.html" width="100%" height="600px" frameborder="0"></iframe>
+</body>
+
+</html>

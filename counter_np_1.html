@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Счетчик Корпус дно 8</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+    }
+
+    h1 {
+      font-size: 24px;
+    }
+
+    .container {
+      max-width: 400px;
+      margin: 0 auto;
+    }
+
+    label {
+      display: block;
+      margin: 10px 0 5px;
+    }
+
+    input {
+      width: 100%;
+      padding: 8px;
+      margin-bottom: 15px;
+      box-sizing: border-box;
+    }
+
+    .button-container {
+      display: flex;
+      justify-content: space-between;
+    }
+
+    button {
+      padding: 10px 15px;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      cursor: pointer;
+      width: 30%;
+    }
+
+    button.reset {
+      background-color: #f44336;
+    }
+
+    button.reset:hover {
+      background-color: #e53935;
+    }
+
+    button.start {
+      background-color: #2196F3;
+    }
+
+    button.start:hover {
+      background-color: #1E88E5;
+    }
+
+    button:hover {
+      background-color: #45a049;
+    }
+
+    .result {
+      margin-top: 20px;
+      font-size: 18px;
+      font-weight: bold;
+      color: #333;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <h1>Расчет времени завершения(Корпус дно 8)</h1>
+    <label for="punches2">Количество пуансонов:</label>
+    <input type="number" id="punches2" min="1" value="1">
+
+    <label for="detailsPerMinute2">Деталей за минуту одним пуансоном:</label>
+    <input type="number" id="detailsPerMinute2" min="1" value="1">
+
+    <label for="requiredDetails2">Количество нужных изделий:</label>
+    <input type="number" id="requiredDetails2" min="1" value="1">
+
+    <label for="startTime2">Время начала работы (формат HH:MM):</label>
+    <input type="time" id="startTime2" value="08:00">
+
+    <div class="button-container">
+      <button onclick="calculate()">Рассчитать</button>
+      <button class="start" onclick="startProgress()">Старт</button>
+      <button class="reset" onclick="resetForm()">Сброс</button>
+    </div>
+
+    <div class="result" id="result2"></div>
+  </div>
+
+  <script>
+    let intervalId;
+    let completedDetails = 0;
+    let remainingDetails;
+    let totalDetailsPerMinute;
+    let detailsPerTwoSeconds;
+    let punches, detailsPerMinute, requiredDetails;
+    let startDate, endDate;
+
+    // Сохранение данных в localStorage для Счетчика 2
+    function saveData() {
+      const punches = document.getElementById('punches2').value;
+      const detailsPerMinute = document.getElementById('detailsPerMinute2').value;
+      const requiredDetails = document.getElementById('requiredDetails2').value;
+      const startTime = document.getElementById('startTime2').value;
+
+      localStorage.setItem('punches2', punches);
+      localStorage.setItem('detailsPerMinute2', detailsPerMinute);
+      localStorage.setItem('requiredDetails2', requiredDetails);
+      localStorage.setItem('startTime2', startTime);
+    }
+
+    // Загрузка данных из localStorage для Счетчика 2
+    window.onload = function () {
+      if (localStorage.getItem('punches2')) {
+        document.getElementById('punches2').value = localStorage.getItem('punches2');
+      }
+      if (localStorage.getItem('detailsPerMinute2')) {
+        document.getElementById('detailsPerMinute2').value = localStorage.getItem('detailsPerMinute2');
+      }
+      if (localStorage.getItem('requiredDetails2')) {
+        document.getElementById('requiredDetails2').value = localStorage.getItem('requiredDetails2');
+      }
+      if (localStorage.getItem('startTime2')) {
+        document.getElementById('startTime2').value = localStorage.getItem('startTime2');
+      }
+    };
+
+    function calculate() {
+      punches = parseInt(document.getElementById('punches2').value, 10);
+      detailsPerMinute = parseInt(document.getElementById('detailsPerMinute2').value, 10);
+      requiredDetails = parseInt(document.getElementById('requiredDetails2').value, 10);
+      const startTime = document.getElementById('startTime2').value;
+
+      if (punches < 1 || detailsPerMinute < 1 || requiredDetails < 1 || !startTime) {
+        document.getElementById('result2').innerText = 'Пожалуйста, заполните все поля корректно.';
+        return;
+      }
+
+      totalDetailsPerMinute = punches * detailsPerMinute;
+      const totalMinutes = Math.ceil(requiredDetails / totalDetailsPerMinute);
+
+      const [startHours, startMinutes] = startTime.split(':').map(Number);
+      startDate = new Date();
+      startDate.setHours(startHours, startMinutes);
+
+      endDate = new Date(startDate.getTime() + totalMinutes * 60000);
+      const endHours = endDate.getHours().toString().padStart(2, '0');
+      const endMinutes = endDate.getMinutes().toString().padStart(2, '0');
+      const endDateString = endDate.toLocaleDateString('ru-RU');
+
+      document.getElementById('result2').innerText = `Станок завершит работу ${endDateString} в ${endHours}:${endMinutes}.`;
+
+      saveData(); // Сохраняем данные после расчета
+    }
+
+    function startProgress() {
+      punches = parseInt(document.getElementById('punches2').value, 10);
+      detailsPerMinute = parseInt(document.getElementById('detailsPerMinute2').value, 10);
+      requiredDetails = parseInt(document.getElementById('requiredDetails2').value, 10);
+
+      if (punches < 1 || detailsPerMinute < 1 || requiredDetails < 1) {
+        alert('Введите корректные данные для старта.');
+        return;
+      }
+
+      totalDetailsPerMinute = punches * detailsPerMinute;
+      detailsPerTwoSeconds = totalDetailsPerMinute / 30; // Деталей за 2 секунды
+      completedDetails = 0;
+      remainingDetails = requiredDetails;
+
+      clearInterval(intervalId);
+
+      intervalId = setInterval(() => {
+        completedDetails += detailsPerTwoSeconds;
+        if (completedDetails >= requiredDetails) {
+          completedDetails = requiredDetails;
+          clearInterval(intervalId);
+        }
+        remainingDetails = requiredDetails - Math.floor(completedDetails);
+
+        document.getElementById('result2').innerHTML = `
+          <p>Сделано деталей: ${Math.floor(completedDetails)}</p>
+          <p>Осталось деталей: ${remainingDetails}</p>
+        `;
+        if (completedDetails >= requiredDetails) {
+          document.getElementById('result2').innerHTML += `<p>Работа завершена!</p>`;
+        }
+      }, 2000); // Обновление каждые 2 секунды
+    }
+
+    function resetForm() {
+      document.getElementById('punches2').value = '';
+      document.getElementById('detailsPerMinute2').value = '';
+      document.getElementById('requiredDetails2').value = '';
+      document.getElementById('startTime2').value = '';
+      document.getElementById('result2').innerText = '';
+      clearInterval(intervalId);
+
+      // Очистить localStorage для Счетчика 2
+      localStorage.removeItem('punches2');
+      localStorage.removeItem('detailsPerMinute2');
+      localStorage.removeItem('requiredDetails2');
+      localStorage.removeItem('startTime2');
+    }
+  </script>
+</body>
+
+</html>

@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Расчет времени завершения</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+    }
+
+    .container {
+      max-width: 400px;
+      margin: 0 auto;
+    }
+
+    label {
+      display: block;
+      margin: 10px 0 5px;
+    }
+
+    input {
+      width: 100%;
+      padding: 8px;
+      margin-bottom: 15px;
+      box-sizing: border-box;
+    }
+
+    .button-container {
+      display: flex;
+      justify-content: space-between;
+    }
+
+    button {
+      padding: 10px 15px;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      cursor: pointer;
+      width: 30%;
+    }
+
+    button.reset {
+      background-color: #f44336;
+    }
+
+    button.reset:hover {
+      background-color: #e53935;
+    }
+
+    button.start {
+      background-color: #2196F3;
+    }
+
+    button.start:hover {
+      background-color: #1E88E5;
+    }
+
+    button:hover {
+      background-color: #45a049;
+    }
+
+    .result {
+      margin-top: 20px;
+      font-size: 18px;
+      font-weight: bold;
+      color: #333;
+    }
+
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.5);
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+    }
+
+    .modal-content {
+      background-color: #fff;
+      padding: 20px;
+      border-radius: 10px;
+      text-align: center;
+      width: 300px;
+    }
+
+    .close-button {
+      background-color: #f44336;
+      color: white;
+      border: none;
+      padding: 10px 15px;
+      cursor: pointer;
+      margin-top: 15px;
+    }
+
+    .close-button:hover {
+      background-color: #e53935;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <h1>Расчет времени завершения</h1>
+    <label for="punches">Количество пуансонов:</label>
+    <input type="number" id="punches" min="1" value="1">
+
+    <label for="detailsPerMinute">Деталей за минуту одним пуансоном:</label>
+    <input type="number" id="detailsPerMinute" min="1" value="1">
+
+    <label for="requiredDetails">Количество нужных изделий:</label>
+    <input type="number" id="requiredDetails" min="1" value="1">
+
+    <label for="startTime">Время начала работы (формат HH:MM):</label>
+    <input type="time" id="startTime" value="08:00">
+
+    <div class="button-container">
+      <button onclick="calculate()">Рассчитать</button>
+      <button class="start" onclick="startProgress()">Старт</button>
+      <button class="reset" onclick="resetForm()">Сброс</button>
+    </div>
+
+    <div class="result" id="result"></div>
+  </div>
+
+  <!-- Модальное окно -->
+  <div id="progressModal" class="modal">
+    <div class="modal-content">
+      <h2>Прогресс работы</h2>
+      <div id="progress"></div>
+      <button class="close-button" onclick="closeModal()">Закрыть</button>
+    </div>
+  </div>
+
+  <script>
+    let intervalId;
+    let completedDetails = 0;
+    let remainingDetails;
+    let totalDetailsPerMinute;
+    let detailsPerTwoSeconds;
+    let punches, detailsPerMinute, requiredDetails;
+    let startDate, endDate;
+
+    function calculate() {
+      punches = parseInt(document.getElementById('punches').value, 10);
+      detailsPerMinute = parseInt(document.getElementById('detailsPerMinute').value, 10);
+      requiredDetails = parseInt(document.getElementById('requiredDetails').value, 10);
+      const startTime = document.getElementById('startTime').value;
+
+      if (punches < 1 || detailsPerMinute < 1 || requiredDetails < 1 || !startTime) {
+        document.getElementById('result').innerText = 'Пожалуйста, заполните все поля корректно.';
+        return;
+      }
+
+      totalDetailsPerMinute = punches * detailsPerMinute;
+      const totalMinutes = Math.ceil(requiredDetails / totalDetailsPerMinute);
+
+      const [startHours, startMinutes] = startTime.split(':').map(Number);
+      startDate = new Date();
+      startDate.setHours(startHours, startMinutes);
+
+      endDate = new Date(startDate.getTime() + totalMinutes * 60000);
+      const endHours = endDate.getHours().toString().padStart(2, '0');
+      const endMinutes = endDate.getMinutes().toString().padStart(2, '0');
+      const endDateString = endDate.toLocaleDateString('ru-RU');
+
+      document.getElementById('result').innerText = `Станок завершит работу ${endDateString} в ${endHours}:${endMinutes}.`;
+    }
+
+    function startProgress() {
+      punches = parseInt(document.getElementById('punches').value, 10);
+      detailsPerMinute = parseInt(document.getElementById('detailsPerMinute').value, 10);
+      requiredDetails = parseInt(document.getElementById('requiredDetails').value, 10);
+
+      if (punches < 1 || detailsPerMinute < 1 || requiredDetails < 1) {
+        alert('Введите корректные данные для старта.');
+        return;
+      }
+
+      totalDetailsPerMinute = punches * detailsPerMinute;
+      detailsPerTwoSeconds = totalDetailsPerMinute / 30; // Деталей за 2 секунды
+      completedDetails = 0;
+      remainingDetails = requiredDetails;
+
+      clearInterval(intervalId);
+      openModal();
+
+      intervalId = setInterval(() => {
+        completedDetails += detailsPerTwoSeconds;
+        if (completedDetails >= requiredDetails) {
+          completedDetails = requiredDetails;
+          clearInterval(intervalId);
+        }
+        remainingDetails = requiredDetails - Math.floor(completedDetails);
+
+        document.getElementById('progress').innerHTML = `
+          <p>Сделано деталей: ${Math.floor(completedDetails)}</p>
+          <p>Осталось деталей: ${remainingDetails}</p>
+        `;
+        if (completedDetails >= requiredDetails) {
+          document.getElementById('progress').innerHTML += `<p>Работа завершена!</p>`;
+        }
+      }, 2000); // Обновление каждые 2 секунды
+    }
+
+    function resetForm() {
+      document.getElementById('punches').value = '';
+      document.getElementById('detailsPerMinute').value = '';
+      document.getElementById('requiredDetails').value = '';
+      document.getElementById('startTime').value = '';
+      document.getElementById('result').innerText = '';
+      clearInterval(intervalId);
+      closeModal();
+    }
+
+    function openModal() {
+      document.getElementById('progressModal').style.display = 'flex';
+    }
+
+    function closeModal() {
+      document.getElementById('progressModal').style.display = 'none';
+      clearInterval(intervalId);
+    }
+  </script>
+</body>
+
+</html>

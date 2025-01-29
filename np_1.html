@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Неподвижная плита ТПА № 1</title>
+  <!-- <link rel="stylesheet" href="static/styles/styles.css"> -->
+  <style>
+    /* Styles for the page */
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      background-color: #f4f4f9;
+    }
+
+    h1 {
+      margin: 20px 0;
+      color: #333;
+    }
+
+    .container {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      width: 90%;
+      max-width: 800px;
+    }
+
+    .button-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+
+    }
+
+    button {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 20px;
+      font-size: 16px;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+
+    button.off {
+      background-color: #f44336;
+      color: white;
+    }
+
+    button.on {
+      background-color: #4caf50;
+      color: white;
+    }
+
+    .label-input {
+      flex-grow: 1;
+      padding: 5px;
+      border: 1px solid #cccccc;
+      border-radius: 5px;
+      font-size: 14px;
+    }
+
+    .note-area {
+      flex-grow: 2;
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      font-size: 14px;
+      resize: vertical;
+    }
+
+    .logout-button {
+      padding: 15px 30px;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      font-size: 18px;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+      margin-top: 20px;
+    }
+
+    .erase-button {
+      padding: 15px 30px;
+      background-color: #e31010;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      font-size: 18px;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+      margin-top: 20px;
+    }
+
+    .logout-button:hover {
+      background-color: #0056b3;
+    }
+  </style>
+</head>
+
+<body>
+  <h1>Неподвижная плита</h1>
+  <div class="container" id="container">
+    <!-- Rows with buttons, labels, and note areas will be generated dynamically -->
+  </div>
+
+  <div class="action-buttons">
+    <a href="index.html"><button id="logoutButton" class="logout-button">Выход</button></a>
+    <button id="clearButton" class="erase-button">Стереть</button>
+    <a href="korpusa_tpa_1.html" class="logout-button">Назад</a>
+  </div>
+
+  <script>
+    const container = document.getElementById('container');
+
+    // Load data from localStorage
+    const savedData = JSON.parse(localStorage.getItem('buttonNotes')) || {};
+
+    // Create 9 button-label-note rows dynamically
+    for (let i = 1; i <= 9; i++) {
+      const row = document.createElement('div');
+      row.classList.add('button-row');
+
+      const button = document.createElement('button');
+      button.textContent = savedData[`button${i}`]?.label || 'OFF';
+      button.classList.add(savedData[`button${i}`]?.state === 'ON' ? 'on' : 'off');
+      button.addEventListener('click', () => {
+        if (button.textContent === 'OFF') {
+          button.textContent = 'ON';
+          button.classList.remove('off');
+          button.classList.add('on');
+        } else {
+          button.textContent = 'OFF';
+          button.classList.remove('on');
+          button.classList.add('off');
+        }
+        saveData();
+      });
+
+      const labelInput = document.createElement('input');
+      labelInput.type = 'text';
+      labelInput.classList.add('label-input');
+      labelInput.placeholder = `Знак №`;
+      labelInput.value = savedData[`button${i}`]?.label || '';
+      labelInput.addEventListener('input', () => {
+        button.textContent = labelInput.value || 'OFF';
+        saveData();
+      });
+
+      const noteArea = document.createElement('textarea');
+      noteArea.classList.add('note-area');
+      noteArea.placeholder = `Описание проблемы`;
+      noteArea.value = savedData[`button${i}`]?.notes || '';
+      noteArea.addEventListener('input', saveData);
+
+      row.appendChild(button);
+      row.appendChild(labelInput);
+      row.appendChild(noteArea);
+      container.appendChild(row);
+    }
+
+    function saveData() {
+      const data = {};
+      container.querySelectorAll('.button-row').forEach((row, index) => {
+        const button = row.querySelector('button');
+        const labelInput = row.querySelector('input');
+        const noteArea = row.querySelector('textarea');
+        data[`button${index + 1}`] = {
+          state: button.classList.contains('on') ? 'ON' : 'OFF',
+          label: labelInput.value,
+          notes: noteArea.value
+        };
+      });
+      localStorage.setItem('buttonNotes', JSON.stringify(data));
+    }
+
+    // Logout button functionality
+    const logoutButton = document.getElementById('logoutButton');
+    logoutButton.addEventListener('click', () => {
+      alert('Вы вышли. Все данные сохранены.');
+    });
+
+    // Clear button functionality
+    const clearButton = document.getElementById('clearButton');
+    clearButton.addEventListener('click', () => {
+      if (confirm('Вы уверены, что хотите стереть все данные?')) {
+        localStorage.removeItem('buttonNotes');
+        location.reload();
+      }
+    });
+  </script>
+  <iframe src="counter_np_1.html" width="100%" height="600px" frameborder="0"></iframe>
+</body>
+
+</html>

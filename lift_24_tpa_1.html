@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Загрузка и просмотр файлов</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.8.162/pdf.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.4.2/mammoth.browser.min.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+    }
+
+    .file-container {
+      margin-bottom: 20px;
+    }
+
+    .viewer {
+      border: 1px solid #ccc;
+      padding: 10px;
+      margin-top: 10px;
+      max-height: 300px;
+      overflow-y: auto;
+      background-color: #f9f9f9;
+    }
+
+    button {
+      cursor: pointer;
+      padding: 5px 10px;
+      border: none;
+      background-color: #007bff;
+      color: white;
+      border-radius: 5px;
+      margin-right: 10px;
+    }
+
+    button:hover {
+      background-color: #0056b3;
+    }
+
+    .actions {
+      margin: 20px 0;
+    }
+  </style>
+</head>
+
+<body>
+  <h1>Загрузка и просмотр файлов</h1>
+
+  <div id="file-containers">
+    <!-- Шаблон для загрузки файлов -->
+    <div class="file-container">
+      <input type="file" id="upload-1" accept=".docx, .xlsx, .pdf" />
+      <button onclick="clearViewer(1)">Удалить</button>
+      <div class="viewer" id="viewer-1">Здесь будет отображаться содержимое файла.</div>
+    </div>
+    <div class="file-container">
+      <input type="file" id="upload-2" accept=".docx, .xlsx, .pdf" />
+      <button onclick="clearViewer(2)">Удалить</button>
+      <div class="viewer" id="viewer-2">Здесь будет отображаться содержимое файла.</div>
+    </div>
+    <div class="file-container">
+      <input type="file" id="upload-3" accept=".docx, .xlsx, .pdf" />
+      <button onclick="clearViewer(3)">Удалить</button>
+      <div class="viewer" id="viewer-3">Здесь будет отображаться содержимое файла.</div>
+    </div>
+    <div class="file-container">
+      <input type="file" id="upload-4" accept=".docx, .xlsx, .pdf" />
+      <button onclick="clearViewer(4)">Удалить</button>
+      <div class="viewer" id="viewer-4">Здесь будет отображаться содержимое файла.</div>
+    </div>
+    <div class="file-container">
+      <input type="file" id="upload-5" accept=".docx, .xlsx, .pdf" />
+      <button onclick="clearViewer(5)">Удалить</button>
+      <div class="viewer" id="viewer-5">Здесь будет отображаться содержимое файла.</div>
+    </div>
+  </div>
+
+  <div class="actions">
+    <button onclick="clearAll()">Стереть все</button>
+    <button onclick="goBack()">Назад</button>
+    <button onclick="exitPage()">Выход</button>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      restoreFromStorage(); // Восстановление данных из LocalStorage
+    });
+
+    for (let i = 1; i <= 5; i++) {
+      document.getElementById(`upload-${i}`).addEventListener('change', function (event) {
+        const file = event.target.files[0];
+        if (file) {
+          processFile(file, i);
+        }
+      });
+    }
+
+    // Обработка загружаемого файла
+    function processFile(file, fileNumber) {
+      const fileType = file.name.split('.').pop().toLowerCase();
+      const viewer = document.getElementById(`viewer-${fileNumber}`);
+      const reader = new FileReader();
+
+      if (fileType === 'pdf') {
+        reader.onload = function (e) {
+          const arrayBuffer = e.target.result;
+          displayPDF(arrayBuffer, viewer); // Отображение PDF
+          saveToStorage(fileNumber, arrayBuffer, file.name); // Сохранение
+        };
+        reader.readAsArrayBuffer(file);
+      } else if (fileType === 'docx') {
+        reader.onload = function (e) {
+          const arrayBuffer = e.target.result;
+          mammoth.extractRawText({ arrayBuffer: arrayBuffer })
+            .then(function (result) {
+              viewer.innerHTML = `<pre>${result.value}</pre>`;
+              saveToStorage(fileNumber, result.value, file.name);
+            })
+            .catch(() => {
+              viewer.innerHTML = 'Ошибка при открытии документа';
+            });
+        };
+        reader.readAsArrayBuffer(file);
+      } else if (fileType === 'xlsx') {
+        reader.onload = function (e) {
+          const data = new Uint8Array(e.target.result);
+          const workbook = XLSX.read(data, { type: 'array' });
+          const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+          const html = XLSX.utils.sheet_to_html(firstSheet);
+          viewer.innerHTML = html;
+          saveToStorage(fileNumber, html, file.name);
+        };
+        reader.readAsArrayBuffer(file);
+      } else {
+        viewer.innerHTML = 'Неподдерживаемый формат файла.';
+      }
+    }
+
+    // Отображение PDF
+    function displayPDF(arrayBuffer, viewer) {
+      const pdfjsLib = window['pdfjs-dist/build/pdf'];
+      const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
+      loadingTask.promise.then(function (pdf) {
+        viewer.innerHTML = '';
+        for (let i = 1; i <= pdf.numPages; i++) {
+          pdf.getPage(i).then(function (page) {
+            const viewport = page.getViewport({ scale: 1.0 });
+            const canvas = document.createElement('canvas');
+            const context = canvas.getContext('2d');
+            canvas.height = viewport.height;
+            canvas.width = viewport.width;
+            viewer.appendChild(canvas);
+            page.render({ canvasContext: context, viewport: viewport });
+          });
+        }
+      }).catch(() => {
+        viewer.innerHTML = 'Ошибка при открытии PDF.';
+      });
+    }
+
+    // Сохранение в LocalStorage
+    function saveToStorage(fileNumber, content, name) {
+      const data = { content, name };
+      localStorage.setItem(`file-${fileNumber}`, JSON.stringify(data));
+    }
+
+    // Восстановление из LocalStorage
+    function restoreFromStorage() {
+      for (let i = 1; i <= 5; i++) {
+        const fileData = localStorage.getItem(`file-${i}`);
+        if (fileData) {
+          const { content, name } = JSON.parse(fileData);
+          const viewer = document.getElementById(`viewer-${i}`);
+          viewer.innerHTML = `<p>Восстановлен файл: ${name}</p>`;
+        }
+      }
+    }
+
+    // Очистка одного поля
+    function clearViewer(fileNumber) {
+      document.getElementById(`viewer-${fileNumber}`).innerHTML = 'Здесь будет отображаться содержимое файла.';
+      localStorage.removeItem(`file-${fileNumber}`);
+    }
+
+    // Очистка всех
+    function clearAll() {
+      for (let i = 1; i <= 5; i++) {
+        clearViewer(i);
+      }
+    }
+
+    function goBack() {
+      history.back();
+    }
+
+    function exitPage() {
+      if (confirm('Вы уверены, что хотите выйти?')) {
+        window.close();
+      }
+    }
+  </script>
+</body>
+
+</html>

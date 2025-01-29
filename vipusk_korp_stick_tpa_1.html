@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Загрузка файлов корпус стик</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #2c3e50, #1abc9c, #8e44ad);
+      background-attachment: fixed;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+      color: white;
+    }
+
+    .button-container {
+      display: flex;
+      flex-direction: column;
+      gap: 25px;
+      z-index: 2;
+      padding: 30px;
+      background-color: rgba(0, 0, 0, 0.7);
+      border-radius: 12px;
+      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+    }
+
+    .button-container a {
+      text-decoration: none;
+    }
+
+    .button {
+      padding: 16px 36px;
+      font-size: 18px;
+      font-weight: bold;
+      text-align: center;
+      border-radius: 12px;
+      background-color: #e74c3c;
+      color: white;
+      border: none;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .button:hover {
+      background-color: #c0392b;
+      transform: translateY(-4px);
+      box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+    }
+
+    .button:active {
+      background-color: #e74c3c;
+      transform: translateY(2px);
+      box-shadow: none;
+    }
+
+    h1 {
+      color: white;
+      text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.6);
+      margin-bottom: 40px;
+      font-size: 36px;
+      text-align: center;
+
+    }
+  </style>
+</head>
+
+<body>
+
+  <h1>Загрузка, чтение и удаление файлов</h1>
+
+  <!-- Загрузка файлов -->
+  <input type="file" id="fileInput" accept=".pdf, .docx" />
+  <div id="fileContent"></div>
+
+  <button id="deleteButton" style="display: none;">Удалить файл</button>
+
+  <!-- Подключение библиотек -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.10.377/pdf.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.4.2/mammoth.browser.min.js"></script>
+
+  <script>
+    const fileInput = document.getElementById('fileInput');
+    const fileContent = document.getElementById('fileContent');
+    const deleteButton = document.getElementById('deleteButton');
+    let currentFile = null;
+
+    // Обработчик загрузки файлов
+    fileInput.addEventListener('change', (event) => {
+      const file = event.target.files[0];
+      if (file) {
+        currentFile = file;
+        readFile(file);
+      }
+    });
+
+    // Функция для чтения файла
+    function readFile(file) {
+      const fileReader = new FileReader();
+      const fileType = file.type;
+
+      if (fileType === 'application/pdf') {
+        // Чтение PDF
+        fileReader.onload = function () {
+          const arrayBuffer = fileReader.result;
+          const pdfData = new Uint8Array(arrayBuffer);
+          readPdf(pdfData);
+        };
+        fileReader.readAsArrayBuffer(file);
+      } else if (fileType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+        // Чтение Word (docx)
+        fileReader.onload = function () {
+          const arrayBuffer = fileReader.result;
+          readWord(arrayBuffer);
+        };
+        fileReader.readAsArrayBuffer(file);
+      } else {
+        fileContent.textContent = 'Неверный формат файла. Пожалуйста, загрузите PDF или Word файл.';
+      }
+    }
+
+    // Чтение PDF файла
+    function readPdf(pdfData) {
+      pdfjsLib.getDocument(pdfData).promise.then(pdf => {
+        pdf.getPage(1).then(page => {
+          page.getTextContent().then(textContent => {
+            const text = textContent.items.map(item => item.str).join(' ');
+            fileContent.textContent = text;
+            deleteButton.style.display = 'inline';
+          });
+        });
+      }).catch(error => {
+        fileContent.textContent = 'Ошибка при чтении PDF файла: ' + error.message;
+      });
+    }
+
+    // Чтение Word файла
+    function readWord(arrayBuffer) {
+      mammoth.extractRawText({ arrayBuffer: arrayBuffer })
+        .then(result => {
+          fileContent.textContent = result.value;
+          deleteButton.style.display = 'inline';
+        })
+        .catch(error => {
+          fileContent.textContent = 'Ошибка при чтении Word файла: ' + error.message;
+        });
+    }
+
+    // Удаление файла
+    deleteButton.addEventListener('click', () => {
+      fileInput.value = '';
+      fileContent.textContent = '';
+      deleteButton.style.display = 'none';
+      currentFile = null;
+    });
+  </script>
+  <div class="button-container">
+    <a href="index.html" class="button">Выход</a>
+  </div>
+
+</body>
+
+</html>
